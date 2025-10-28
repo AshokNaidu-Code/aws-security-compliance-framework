@@ -1,0 +1,10 @@
+aws_region                             = "us-east-1"
+environment                            = "prod"
+owner_email                            = "ashoknallam03@gmail.com"
+enable_mfa_enforcement                 = true
+guardduty_finding_publishing_frequency = "FIFTEEN_MINUTES"
+cloudtrail_s3_bucket_name              = "prod-cloudtrail-logs-123456789012"
+enable_s3_protection                   = true
+enable_kubernetes_protection           = true
+config_recorder_name                   = "security-compliance-recorder"
+sns_email_endpoints                    = ["ashoknallam03@gmail.com"]

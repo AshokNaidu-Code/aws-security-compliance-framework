@@ -1,0 +1,115 @@
+name: Terraform Apply
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infrastructure/terraform/**'
+      - '.github/workflows/terraform-*.yml'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'apply'
+        type: choice
+        options:
+          - apply
+          - destroy
+
+permissions:
+  id-token: write
+  contents: read
+  issues: write
+
+env:
+  TF_VERSION: '1.6.0'
+  AWS_REGION: 'us-east-1'
+  WORKING_DIR: './infrastructure/terraform'
+
+jobs:
+  terraform-apply:
+    name: Terraform ${{ github.event.inputs.action || 'apply' }}
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-TerraformApply
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      
+      - name: Create terraform.tfvars
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          cat > terraform.tfvars <<EOF
+          aws_region                            = "${{ secrets.TF_VAR_AWS_REGION }}"
+          environment                           = "${{ secrets.TF_VAR_ENVIRONMENT }}"
+          owner_email                           = "${{ secrets.TF_VAR_OWNER_EMAIL }}"
+          enable_mfa_enforcement                = true
+          guardduty_finding_publishing_frequency = "FIFTEEN_MINUTES"
+          cloudtrail_s3_bucket_name             = "${{ secrets.TF_VAR_CLOUDTRAIL_BUCKET }}"
+          enable_s3_protection                  = true
+          enable_kubernetes_protection          = true
+          config_recorder_name                  = "security-compliance-recorder"
+          sns_email_endpoints                   = ["${{ secrets.TF_VAR_SNS_EMAIL }}"]
+          EOF
+      
+      - name: Terraform Init
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform init -input=false
+      
+      - name: Terraform Apply
+        if: github.event.inputs.action != 'destroy'
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform apply -auto-approve -input=false
+      
+      - name: Terraform Destroy
+        if: github.event.inputs.action == 'destroy'
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform destroy -auto-approve -input=false
+      
+      - name: Terraform Output
+        if: github.event.inputs.action != 'destroy'
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform output -json > outputs.json
+      
+      - name: Upload Outputs
+        if: github.event.inputs.action != 'destroy'
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs
+          path: ${{ env.WORKING_DIR }}/outputs.json
+          retention-days: 30
+      
+      - name: Create Issue on Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Terraform ${{ github.event.inputs.action || 'apply' }} Failed',
+              body: `Terraform ${{ github.event.inputs.action || 'apply' }} failed in workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+              
+              **Branch:** \`${{ github.ref_name }}\`
+              **Commit:** \`${{ github.sha }}\`
+              **Actor:** @${{ github.actor }}
+              
+              Please investigate and resolve the issue.`,
+              labels: ['terraform', 'infrastructure', 'bug']
+            });
