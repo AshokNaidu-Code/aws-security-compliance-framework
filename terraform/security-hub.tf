@@ -271,7 +271,10 @@ EOF
 
 resource "aws_securityhub_insight" "critical_high_by_resource" {
   count = var.enable_security_hub ? 1 : 0
-
+  depends_on = [
+    aws_securityhub_account.main,
+    aws_securityhub_standards_subscription.aws_foundational
+  ]
   filters {
     severity_label {
       comparison = "EQUALS"
@@ -293,7 +296,10 @@ resource "aws_securityhub_insight" "critical_high_by_resource" {
 
 resource "aws_securityhub_insight" "failed_compliance" {
   count = var.enable_security_hub ? 1 : 0
-
+  depends_on = [
+    aws_securityhub_account.main,
+    aws_securityhub_standards_subscription.aws_foundational
+  ]
   filters {
     compliance_status {
       comparison = "EQUALS"
