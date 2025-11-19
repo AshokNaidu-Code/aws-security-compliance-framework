@@ -1,4 +1,3 @@
-# aws-security-compliance-framework
 # AWS Security & Compliance Framework
 
 ![Security](https://img.shields.io/badge/Security-Hardened-success)
