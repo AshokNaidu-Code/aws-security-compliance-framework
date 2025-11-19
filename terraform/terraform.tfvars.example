@@ -1,0 +1,157 @@
+# ============================================================================
+# Terraform Variables Configuration - AWS Security Framework
+# ============================================================================
+# Copy this file to terraform.tfvars and customize for your environment
+# ============================================================================
+
+# ============================================================================
+# General Configuration
+# ============================================================================
+
+project_name = "security-framework"
+environment  = "production"  # Options: dev, staging, production
+aws_region   = "us-east-1"
+
+# ============================================================================
+# Alerting Configuration
+# ============================================================================
+
+# REQUIRED: Email address for security alerts
+alert_email = "security-team@company.com"
+
+# Optional: Slack webhook for alerts
+# slack_webhook_url = "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+
+# Enable separate topic for medium priority alerts
+enable_medium_alerts = false
+
+# ============================================================================
+# IAM Password Policy (CIS Benchmark Compliant)
+# ============================================================================
+
+password_minimum_length   = 14
+password_max_age          = 90
+password_reuse_prevention = 24
+require_uppercase         = true
+require_lowercase         = true
+require_numbers           = true
+require_symbols           = true
+
+# ============================================================================
+# Threat Detection - GuardDuty
+# ============================================================================
+
+enable_guardduty             = true
+guardduty_finding_frequency = "FIFTEEN_MINUTES"  # Options: FIFTEEN_MINUTES, ONE_HOUR, SIX_HOURS
+
+# ============================================================================
+# Security Hub Configuration
+# ============================================================================
+
+enable_security_hub = true
+enable_cis_level_1  = true   # CIS AWS Foundations Benchmark Level 1
+enable_cis_level_2  = false  # CIS Level 2 (more restrictive)
+enable_pci_dss      = false  # PCI-DSS compliance (for payment processing)
+enable_hipaa        = false  # HIPAA compliance (for healthcare)
+
+# ============================================================================
+# AWS Config - Compliance Rules
+# ============================================================================
+
+enable_config_rules = true
+
+# ============================================================================
+# CloudTrail - Audit Logging
+# ============================================================================
+
+enable_cloudtrail        = true
+cloudtrail_log_retention = 90   # Days (minimum 90 for CIS compliance)
+cloudwatch_log_retention = 365  # Days
+
+# ============================================================================
+# KMS - Encryption Keys
+# ============================================================================
+
+enable_kms_key_rotation = true
+kms_deletion_window     = 30  # Days (7-30)
+enable_ebs_encryption   = true
+
+# ============================================================================
+# S3 - Log Storage
+# ============================================================================
+
+s3_log_lifecycle_glacier = 90  # Days before moving to Glacier
+
+# ============================================================================
+# Inspector - Vulnerability Scanning
+# ============================================================================
+
+enable_inspector = true
+
+# ============================================================================
+# Support Role (For AWS Support Access)
+# ============================================================================
+
+enable_support_role = false
+
+# ============================================================================
+# Additional Tags (Optional)
+# ============================================================================
+
+additional_tags = {
+  CostCenter  = "Security"
+  Team        = "SecOps"
+  Compliance  = "CIS-Benchmark"
+  DataClass   = "Confidential"
+  Backup      = "Required"
+}
+
+# ============================================================================
+# Environment-Specific Examples
+# ============================================================================
+
+# ----- Development Environment -----
+# project_name     = "sec-dev"
+# environment      = "dev"
+# alert_email      = "dev-team@company.com"
+# enable_cis_level_1 = true
+# enable_cis_level_2 = false
+# enable_pci_dss     = false
+# cloudtrail_log_retention = 30
+
+# ----- Staging Environment -----
+# project_name     = "sec-staging"
+# environment      = "staging"
+# alert_email      = "staging-alerts@company.com"
+# enable_cis_level_1 = true
+# enable_cis_level_2 = true
+# enable_pci_dss     = false
+# cloudtrail_log_retention = 90
+
+# ----- Production Environment -----
+# project_name     = "sec-prod"
+# environment      = "production"
+# alert_email      = "security-team@company.com"
+# enable_cis_level_1 = true
+# enable_cis_level_2 = true
+# enable_pci_dss     = true  # If needed
+# enable_hipaa       = false # If needed
+# cloudtrail_log_retention = 365
+# cloudwatch_log_retention = 730  # 2 years
+
+# ============================================================================
+# Cost Optimization Tips
+# ============================================================================
+
+# For lower cost in dev environments:
+# - Set enable_cis_level_2 = false
+# - Set cloudtrail_log_retention = 30
+# - Set guardduty_finding_frequency = "SIX_HOURS"
+# - Set enable_inspector = false
+# Estimated savings: ~$5-7/month
+
+# For maximum security (production):
+# - Enable all standards
+# - Set longer retention periods
+# - Enable all services
+# Expected cost: ~$20-25/month
