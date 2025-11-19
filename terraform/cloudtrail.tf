@@ -51,7 +51,7 @@ resource "aws_cloudtrail" "main" {
     # Log S3 data events
     data_resource {
       type   = "AWS::S3::Object"
-      values = ["arn:${local.partition}:s3:::s3"]
+      values = ["arn:${local.partition}:s3"]
     }
 
     # Log Lambda function invocations

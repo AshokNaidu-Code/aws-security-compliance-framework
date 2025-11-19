@@ -142,7 +142,7 @@ resource "aws_iam_role" "config" {
 # Attach AWS managed Config policy
 resource "aws_iam_role_policy_attachment" "config" {
   role       = aws_iam_role.config.name
-  policy_arn = "arn:${local.partition}:iam::aws:policy/service-role/AWS_ConfigRole"
+  policy_arn = "arn:${local.partition}:iam::aws:policy/service-role/AWSSecurityHubServiceRolePolicy"
 }
 
 # Additional permissions for Config to write to S3
