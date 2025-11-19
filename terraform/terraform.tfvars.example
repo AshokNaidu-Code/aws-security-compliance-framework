@@ -41,14 +41,14 @@ require_symbols           = true
 # Threat Detection - GuardDuty
 # ============================================================================
 
-enable_guardduty             = true
+enable_guardduty             = false
 guardduty_finding_frequency = "FIFTEEN_MINUTES"  # Options: FIFTEEN_MINUTES, ONE_HOUR, SIX_HOURS
 
 # ============================================================================
 # Security Hub Configuration
 # ============================================================================
 
-enable_security_hub = true
+enable_security_hub = false
 enable_cis_level_1  = true   # CIS AWS Foundations Benchmark Level 1
 enable_cis_level_2  = false  # CIS Level 2 (more restrictive)
 enable_pci_dss      = false  # PCI-DSS compliance (for payment processing)
