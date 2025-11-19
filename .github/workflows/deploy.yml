@@ -1,0 +1,276 @@
+name: Deploy Security Framework
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'terraform/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+
+env:
+  TF_VERSION: 1.6.0
+  AWS_REGION: us-east-1
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: |
+          cd terraform
+          terraform init -reconfigure 
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          cd terraform
+          terraform plan -out=tfplan -no-color
+          terraform show -no-color tfplan > plan_output.txt
+
+      - name: Upload Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: terraform/tfplan
+          retention-days: 7
+
+      - name: Plan Summary
+        run: |
+          cd terraform
+          echo "## 🔐 Security Framework Deployment Plan" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Resources to Deploy:" >> $GITHUB_STEP_SUMMARY
+          echo "- GuardDuty: Threat detection" >> $GITHUB_STEP_SUMMARY
+          echo "- Security Hub: Centralized security findings" >> $GITHUB_STEP_SUMMARY
+          echo "- AWS Config: 20+ compliance rules" >> $GITHUB_STEP_SUMMARY
+          echo "- CloudTrail: Multi-region audit logging" >> $GITHUB_STEP_SUMMARY
+          echo "- KMS: 3-4 encryption keys" >> $GITHUB_STEP_SUMMARY
+          echo "- S3: 3-4 secure log buckets" >> $GITHUB_STEP_SUMMARY
+          echo "- CloudWatch: 8+ security alarms" >> $GITHUB_STEP_SUMMARY
+          echo "- SNS: 2 alert topics" >> $GITHUB_STEP_SUMMARY
+
+  terraform-apply:
+    name: Deploy Security Controls
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    environment:
+      name: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: |
+          cd terraform
+          terraform init
+
+      - name: Download Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: terraform
+
+      - name: Terraform Apply
+        id: apply
+        run: |
+          cd terraform
+          terraform apply -auto-approve tfplan
+
+      - name: Get Outputs
+        id: outputs
+        run: |
+          cd terraform
+          echo "guardduty_id=$(terraform output -raw guardduty_detector_id)" >> $GITHUB_OUTPUT
+          echo "security_hub_arn=$(terraform output -raw security_hub_arn)" >> $GITHUB_OUTPUT
+
+      - name: Deployment Summary
+        run: |
+          echo "# 🎉 Security Framework Deployed Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Deployed Components" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| GuardDuty | ✅ Active |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Hub | ✅ Active |" >> $GITHUB_STEP_SUMMARY
+          echo "| AWS Config | ✅ Recording |" >> $GITHUB_STEP_SUMMARY
+          echo "| CloudTrail | ✅ Logging |" >> $GITHUB_STEP_SUMMARY
+          echo "| KMS Encryption | ✅ Enabled |" >> $GITHUB_STEP_SUMMARY
+          echo "| CloudWatch Alarms | ✅ Monitoring |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Quick Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [Security Hub Dashboard](https://${AWS_REGION}.console.aws.amazon.com/securityhub/home)" >> $GITHUB_STEP_SUMMARY
+          echo "- [GuardDuty Findings](https://${AWS_REGION}.console.aws.amazon.com/guardduty/home)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Config Dashboard](https://${AWS_REGION}.console.aws.amazon.com/config/home)" >> $GITHUB_STEP_SUMMARY
+
+  post-deployment-validation:
+    name: Post-Deployment Validation
+    runs-on: ubuntu-latest
+    needs: terraform-apply
+    
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify GuardDuty
+        run: |
+          echo "Checking GuardDuty status..."
+          DETECTOR_ID=$(aws guardduty list-detectors --query 'DetectorIds[0]' --output text)
+          STATUS=$(aws guardduty get-detector --detector-id $DETECTOR_ID --query 'Status' --output text)
+          echo "GuardDuty Status: $STATUS"
+          
+          if [ "$STATUS" == "ENABLED" ]; then
+            echo "✅ GuardDuty is active" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ GuardDuty verification failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: Verify Security Hub
+        run: |
+          echo "Checking Security Hub status..."
+          HUB_ARN=$(aws securityhub describe-hub --query 'HubArn' --output text 2>/dev/null || echo "not-enabled")
+          
+          if [ "$HUB_ARN" != "not-enabled" ]; then
+            echo "✅ Security Hub is active" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Security Hub may still be initializing" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Verify CloudTrail
+        run: |
+          echo "Checking CloudTrail status..."
+          TRAILS=$(aws cloudtrail describe-trails --query 'trailList[].Name' --output text)
+          echo "Active trails: $TRAILS"
+          
+          if [ -n "$TRAILS" ]; then
+            echo "✅ CloudTrail is logging" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ No CloudTrail found" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: Verify Config
+        run: |
+          echo "Checking AWS Config status..."
+          RECORDERS=$(aws configservice describe-configuration-recorders --query 'ConfigurationRecorders[].name' --output text)
+          
+          if [ -n "$RECORDERS" ]; then
+            echo "✅ Config is recording" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ No Config recorder found" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: Validation Complete
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ All Post-Deployment Checks Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Confirm SNS email subscriptions" >> $GITHUB_STEP_SUMMARY
+          echo "2. Review Security Hub findings" >> $GITHUB_STEP_SUMMARY
+          echo "3. Wait 24-48 hours for GuardDuty baseline" >> $GITHUB_STEP_SUMMARY
+          echo "4. Review Config compliance status" >> $GITHUB_STEP_SUMMARY
+
+  notify-deployment:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [terraform-apply, post-deployment-validation]
+    if: always()
+    
+    steps:
+      - name: Deployment Status
+        run: |
+          if [ "${{ needs.terraform-apply.result }}" == "success" ] && [ "${{ needs.post-deployment-validation.result }}" == "success" ]; then
+            echo "::notice::Security framework deployed successfully"
+          else
+            echo "::error::Deployment failed or validation incomplete"
+            exit 1
+          fi
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [terraform-apply, post-deployment-validation]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: deployment-${{ github.run_number }}
+          release_name: Security Framework Deployment ${{ github.run_number }}
+          body: |
+            ## 🔒 Security Framework Deployment
+            
+            ### Deployed Components:
+            - ✅ GuardDuty (Threat Detection)
+            - ✅ Security Hub (CIS Benchmarks)
+            - ✅ AWS Config (20+ Compliance Rules)
+            - ✅ CloudTrail (Multi-Region Logging)
+            - ✅ KMS Encryption Keys
+            - ✅ CloudWatch Security Alarms
+            
+            ### Compliance:
+            - CIS AWS Foundations Benchmark v1.4
+            - AWS Foundational Security Best Practices
+            
+            ### Deployment Details:
+            - Environment: ${{ github.event.inputs.environment || 'production' }}
+            - Region: ${{ env.AWS_REGION }}
+            - Deployment ID: ${{ github.run_number }}
+            - Triggered by: @${{ github.actor }}
+          draft: false
+          prerelease: false

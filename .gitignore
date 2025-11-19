@@ -1,7 +1,205 @@
-# Ignore Terraform state files
+# ============================================================================
+# .gitignore - AWS Security & Compliance Framework
+# ============================================================================
+
+# ============================================================================
+# Terraform Files
+# ============================================================================
+
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
 *.tfstate
 *.tfstate.*
 
-# Ignore Terraform directories and caches
-.terraform/
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files (contain sensitive data)
+*.tfvars
+*.tfvars.json
+
+# EXCEPT the example file
+!terraform.tfvars.example
+
+# Ignore override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform lock file
 .terraform.lock.hcl
+
+# Terraform plan output
+*.tfplan
+tfplan
+plan_output.txt
+
+# CLI configuration files
+.terraformrc
+terraform.rc
+
+# ============================================================================
+# AWS Credentials & Secrets
+# ============================================================================
+
+# AWS credentials
+**/.aws/credentials
+**/.aws/config
+**/aws-credentials.json
+
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+secrets.yaml
+secrets.json
+
+# ============================================================================
+# SSH Keys & Certificates
+# ============================================================================
+
+*.pem
+*.ppk
+*.key
+*.pub
+id_rsa*
+authorized_keys
+*.crt
+*.cer
+*.p12
+*.pfx
+
+# ============================================================================
+# Backup & Temporary Files
+# ============================================================================
+
+backup-state-*.json
+*.backup
+*.bak
+*~
+*.tmp
+*.temp
+
+# ============================================================================
+# IDE & Editor Files
+# ============================================================================
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+
+# Emacs
+\#*\#
+.emacs.desktop
+.emacs.desktop.lock
+*.elc
+
+# ============================================================================
+# Operating System Files
+# ============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+
+# ============================================================================
+# Logs
+# ============================================================================
+
+*.log
+logs/
+*.log.*
+
+# ============================================================================
+# Python
+# ============================================================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+env/
+ENV/
+
+# ============================================================================
+# Security Scanning Reports
+# ============================================================================
+
+.tfsec/
+.checkov/
+checkov_report.*
+tfsec_report.*
+security-scan-results/
+
+# ============================================================================
+# Documentation Build
+# ============================================================================
+
+docs/_build/
+site/
+
+# ============================================================================
+# Archives
+# ============================================================================
+
+*.zip
+*.tar.gz
+*.rar
+
+# ============================================================================
+# Keep These Files
+# ============================================================================
+
+!**/*.example
+!**/examples/**
+!**/*-example.*
+!**/docs/**/*.md
+!README.md
+!LICENSE

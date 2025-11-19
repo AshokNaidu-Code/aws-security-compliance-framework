@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "guardduty:*",
+        "securityhub:*",
+        "config:*",
+        "cloudtrail:*",
+        "s3:*",
+        "kms:*",
+        "iam:*",
+        "sns:*",
+        "cloudwatch:*",
+        "events:*",
+        "logs:*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
