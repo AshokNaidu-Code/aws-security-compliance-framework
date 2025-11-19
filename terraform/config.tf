@@ -66,7 +66,7 @@ resource "aws_config_config_rule" "iam_credentials_unused" {
   }
 
   input_parameters = jsonencode({
-    maxCredentialUsageAge = 90
+    maxCredentialUsageAge = "90"
   })
 
   depends_on = [aws_config_configuration_recorder.main]
@@ -84,7 +84,7 @@ resource "aws_config_config_rule" "access_keys_rotated" {
   }
 
   input_parameters = jsonencode({
-    maxAccessKeyAge = 90
+    maxAccessKeyAge = "90"
   })
 
   depends_on = [aws_config_configuration_recorder.main]
@@ -297,7 +297,7 @@ resource "aws_config_config_rule" "no_unrestricted_rdp" {
   }
 
   input_parameters = jsonencode({
-    blockedPort1 = 3389
+    blockedPort1 = "3389"
   })
 
   depends_on = [aws_config_configuration_recorder.main]
@@ -359,7 +359,9 @@ resource "aws_config_config_rule" "lambda_runtime_check" {
     owner             = "AWS"
     source_identifier = "LAMBDA_FUNCTION_SETTINGS_CHECK"
   }
-
+  input_parameters = jsonencode({
+    runtime = "python3.11,python3.12,nodejs18.x,nodejs20.x"
+  })
   depends_on = [aws_config_configuration_recorder.main]
 }
 

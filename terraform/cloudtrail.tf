@@ -57,7 +57,7 @@ resource "aws_cloudtrail" "main" {
     # Log Lambda function invocations
     data_resource {
       type   = "AWS::Lambda::Function"
-      values = ["arn:${local.partition}:lambda:*:${local.account_id}:function/*"]
+      values = ["arn:${local.partition}:lambda"]
     }
   }
 
